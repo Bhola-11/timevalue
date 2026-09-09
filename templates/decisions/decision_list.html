@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}All Decisions — TimeVault{% endblock %}
+{% block header_title %}Decision Archive & Search{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 1.5rem;">
+  <form method="get" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+    <div style="flex: 2; min-width: 220px;">
+      <label class="form-label" style="font-size: 0.75rem;">Search Title or Context</label>
+      <input type="text" name="q" value="{{ current_query }}" class="form-input" placeholder="e.g. Job offer, MBA, Relocation...">
+    </div>
+
+    <div style="flex: 1; min-width: 140px;">
+      <label class="form-label" style="font-size: 0.75rem;">Category</label>
+      <select name="category" class="form-select">
+        <option value="">All Categories</option>
+        {% for code, label in categories %}
+          <option value="{{ code }}" {% if current_category == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="flex: 1; min-width: 130px;">
+      <label class="form-label" style="font-size: 0.75rem;">Status</label>
+      <select name="status" class="form-select">
+        <option value="">All Statuses</option>
+        {% for code, label in statuses %}
+          <option value="{{ code }}" {% if current_status == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="flex: 1; min-width: 130px;">
+      <label class="form-label" style="font-size: 0.75rem;">Importance</label>
+      <select name="importance" class="form-select">
+        <option value="">All Importances</option>
+        {% for code, label in importances %}
+          <option value="{{ code }}" {% if current_importance == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="flex: 1; min-width: 130px;">
+      <label class="form-label" style="font-size: 0.75rem;">Sort By</label>
+      <select name="sort" class="form-select">
+        <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>Newest First</option>
+        <option value="oldest" {% if current_sort == 'oldest' %}selected{% endif %}>Oldest First</option>
+        <option value="deadline" {% if current_sort == 'deadline' %}selected{% endif %}>Deadline</option>
+        <option value="title" {% if current_sort == 'title' %}selected{% endif %}>Alphabetical</option>
+      </select>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem;">
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="{% url 'decision_list' %}" class="btn btn-secondary">Reset</a>
+    </div>
+  </form>
+</div>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+  <div style="font-size: 0.9rem; color: var(--text-muted);">Showing <strong>{{ total_count }}</strong> decisions</div>
+  <a href="{% url 'decision_create' %}" class="btn btn-primary btn-sm">+ New Decision</a>
+</div>
+
+{% if decisions %}
+  <div class="decision-grid">
+    {% for dec in decisions %}
+      <div class="decision-card">
+        <div>
+          <div class="decision-meta">
+            <span class="badge badge-{{ dec.importance|lower }}">{{ dec.get_importance_display }}</span>
+            <span class="badge badge-{{ dec.status|lower }}">{{ dec.get_status_display }}</span>
+            <span style="font-size: 0.75rem; color: var(--text-dim);">{{ dec.get_category_display }}</span>
+          </div>
+
+          <h3 class="decision-card-title">
+            <a href="{% url 'decision_detail' dec.pk %}">{{ dec.title }}</a>
+          </h3>
+
+          <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 1rem;">
+            {{ dec.description|truncatewords:20|default:"No detailed notes recorded." }}
+          </p>
+
+          <div style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.5rem;">
+            {% if dec.deadline %}
+              📅 Deadline: {{ dec.deadline|date:"M d, Y" }}
+            {% else %}
+              📅 No strict deadline
+            {% endif %}
+          </div>
+
+          {% if dec.selected_option %}
+            <div style="background-color: var(--bg-surface-elevated); padding: 0.6rem 0.8rem; border-radius: var(--radius-sm); font-size: 0.8rem; margin-bottom: 1rem;">
+              <span style="color: var(--accent-success); font-weight: 600;">✓ Chosen:</span> {{ dec.selected_option.title }}
+              <div style="color: var(--text-dim); font-size: 0.75rem; margin-top: 0.2rem;">Confidence: {{ dec.confidence_score }}%</div>
+            </div>
+          {% endif %}
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid var(--border-subtle); margin-top: 1rem;">
+          <div style="display: flex; gap: 0.4rem;">
+            <a href="{% url 'decision_detail' dec.pk %}" class="btn btn-secondary btn-sm">Overview</a>
+            {% if dec.status == 'COMPLETED' %}
+              <a href="{% url 'decision_replay' dec.pk %}" class="btn btn-secondary btn-sm" style="color: var(--accent-info);">Replay</a>
+            {% elif dec.status == 'DECIDED' %}
+              <a href="{% url 'decision_outcome' dec.pk %}" class="btn btn-secondary btn-sm" style="color: var(--accent-success);">Outcome</a>
+            {% else %}
+              <a href="{% url 'decision_wizard' dec.pk %}" class="btn btn-primary btn-sm">Evaluate</a>
+            {% endif %}
+          </div>
+          <a href="{% url 'decision_delete' dec.pk %}" style="color: var(--text-dim); font-size: 0.8rem; hover: color: var(--accent-danger);" title="Delete">🗑️</a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card" style="text-align: center; padding: 3rem 1rem;">
+    <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔍</div>
+    <h3>No matching decisions found</h3>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0.5rem 0 1.5rem 0;">Try adjusting your query or filter parameters.</p>
+    <a href="{% url 'decision_list' %}" class="btn btn-secondary btn-sm">Clear Filters</a>
+  </div>
+{% endif %}
+{% endblock %}

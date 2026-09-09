@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}Decision Insights & Meta-Patterns — TimeVault{% endblock %}
+{% block header_title %}Historical Decision Intelligence Insights{% endblock %}
+
+{% block content %}
+<div class="stat-grid">
+  <div class="stat-card" style="--stat-accent: #6366f1;">
+    <div class="stat-label">Total Evaluated Decisions</div>
+    <div class="stat-value">{{ total_decisions }}</div>
+    <div class="stat-subtext">{{ completed_count }} with real-world outcomes</div>
+  </div>
+
+  <div class="stat-card" style="--stat-accent: #10b981;">
+    <div class="stat-label">Top Performing Category</div>
+    <div class="stat-value" style="font-size: 1.4rem; padding-top: 0.25rem;">
+      {{ best_category.label|default:"Insufficient Data" }}
+    </div>
+    <div class="stat-subtext">
+      {% if best_category %}{{ best_category.success_rate }}% positive rate{% else %}Log outcomes to compute{% endif %}
+    </div>
+  </div>
+
+  <div class="stat-card" style="--stat-accent: #38bdf8;">
+    <div class="stat-label">Mean Confidence Score</div>
+    <div class="stat-value">{{ avg_confidence }}%</div>
+    <div class="stat-subtext">Average conviction calibration</div>
+  </div>
+
+  <div class="stat-card" style="--stat-accent: #f59e0b;">
+    <div class="stat-label">Intuitive Divergence Count</div>
+    <div class="stat-value">{{ divergent_decisions|length }}</div>
+    <div class="stat-subtext">Chose other than #1 model rank</div>
+  </div>
+</div>
+
+<!-- Category Performance Intelligence -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">Category Success & Confidence Distribution</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+        Empirical evaluation of decision quality grouped by life domain.
+      </p>
+    </div>
+  </div>
+
+  {% if category_stats %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Domain / Category</th>
+            <th>Decisions</th>
+            <th>Evaluated Outcomes</th>
+            <th>Success Rate</th>
+            <th>Avg Confidence</th>
+            <th>Performance Trend</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cat in category_stats %}
+            <tr>
+              <td style="font-weight: 700;">{{ cat.label }}</td>
+              <td>{{ cat.total }}</td>
+              <td>{{ cat.completed }} ({{ cat.successful }} positive)</td>
+              <td>
+                <span class="badge {% if cat.success_rate >= 70 %}badge-successful{% elif cat.success_rate >= 40 %}badge-medium{% else %}badge-neutral{% endif %}">
+                  {{ cat.success_rate }}%
+                </span>
+              </td>
+              <td>{{ cat.avg_confidence }}%</td>
+              <td style="width: 200px;">
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill" style="width: {{ cat.success_rate }}%;"></div>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p style="font-size: 0.85rem; color: var(--text-dim); text-align: center; padding: 2rem;">No category data accumulated yet.</p>
+  {% endif %}
+</div>
+
+<!-- Divergent Decision Audit -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">Divergence Analysis: Gut Instinct vs Mathematical Model</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+        Decisions where your chosen path differed from the highest mathematically-weighted option.
+      </p>
+    </div>
+    <span class="badge badge-warning">{{ divergent_decisions|length }} Cases</span>
+  </div>
+
+  {% if divergent_decisions %}
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+      {% for item in divergent_decisions %}
+        <div style="background-color: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h4 style="font-size: 1rem; font-weight: 700;">
+              <a href="{% url 'decision_detail' item.decision.pk %}">{{ item.decision.title }}</a>
+            </h4>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.35rem;">
+              Chosen: <strong style="color: var(--brand-primary);">{{ item.selected }} ({{ item.selected_score }}%)</strong> vs
+              Model #1: <strong style="color: var(--accent-success);">{{ item.top_option }} ({{ item.top_score }}%)</strong>
+              <span style="color: var(--accent-warning); margin-left: 0.5rem;">[Delta: {{ item.difference }}%]</span>
+            </div>
+            {% if item.decision.decision_reasoning %}
+              <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 0.25rem;">Rationale: "{{ item.decision.decision_reasoning|truncatewords:15 }}"</div>
+            {% endif %}
+          </div>
+
+          <div>
+            {% if item.decision.status == 'COMPLETED' %}
+              <a href="{% url 'decision_replay' item.decision.pk %}" class="btn btn-secondary btn-sm" style="color: var(--accent-info);">Replay Lesson</a>
+            {% else %}
+              <a href="{% url 'decision_detail' item.decision.pk %}" class="btn btn-secondary btn-sm">Inspect</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.9rem;">
+      No divergent decisions recorded. When you prioritize intuition over mathematical ranking, they will appear here for longitudinal analysis.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

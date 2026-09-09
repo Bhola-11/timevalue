@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Log Outcome: {{ decision.title }} — TimeVault{% endblock %}
+{% block header_title %}Log Real-World Decision Outcome{% endblock %}
+
+{% block content %}
+<div style="max-width: 780px; margin: 0 auto;">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Retrospective Outcome Evaluation</h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+          For decision: <strong>{{ decision.title }}</strong> (Chosen: {{ decision.selected_option.title|default:"None" }})
+        </p>
+      </div>
+      <a href="{% url 'decision_detail' decision.pk %}" class="btn btn-secondary btn-sm">Cancel</a>
+    </div>
+
+    <div style="background-color: var(--bg-surface-elevated); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; font-size: 0.85rem;">
+      <div style="color: var(--text-dim); text-transform: uppercase; font-size: 0.72rem; font-weight: 700;">Original Prediction at Decision Time</div>
+      <div style="margin-top: 0.25rem;">
+        <strong>Confidence:</strong> {{ decision.confidence_score|default:"N/A" }}% &nbsp;|&nbsp;
+        <strong>Rationale:</strong> {{ decision.decision_reasoning|default:"None provided" }}
+      </div>
+    </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.errors %}
+        <div class="alert alert-error">
+          <ul style="margin-left: 1.25rem; font-size: 0.85rem;">
+            {% for field in form %}
+              {% for error in field.errors %}
+                <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+        <div class="form-group">
+          <label class="form-label" for="{{ form.outcome_status.id_for_label }}">Overall Status *</label>
+          {{ form.outcome_status }}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.satisfaction_score.id_for_label }}">Satisfaction (1-10) *</label>
+          {{ form.satisfaction_score }}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.outcome_date.id_for_label }}">Evaluation Date *</label>
+          {{ form.outcome_date }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.financial_impact.id_for_label }}">Measurable / Financial Impact</label>
+        {{ form.financial_impact }}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.actual_result.id_for_label }}">Actual Result (What really happened?) *</label>
+        {{ form.actual_result }}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.expected_result.id_for_label }}">Original Expectation</label>
+        {{ form.expected_result }}
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <div class="form-group">
+          <label class="form-label" for="{{ form.what_went_right.id_for_label }}">What Went Right?</label>
+          {{ form.what_went_right }}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.what_went_wrong.id_for_label }}">What Went Wrong?</label>
+          {{ form.what_went_wrong }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.lessons_learned.id_for_label }}">Lessons Learned & Principles for the Future</label>
+        {{ form.lessons_learned }}
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
+        <button type="submit" class="btn btn-primary">
+          Save Outcome & Launch Decision Replay →
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

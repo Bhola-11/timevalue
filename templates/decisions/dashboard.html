@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard — TimeVault Intelligence{% endblock %}
+{% block header_title %}Decision Intelligence Dashboard{% endblock %}
+
+{% block content %}
+<!-- Key Metrics Grid -->
+<div class="stat-grid">
+  <div class="stat-card" style="--stat-accent: #6366f1;">
+    <div class="stat-label">Total Decisions</div>
+    <div class="stat-value">{{ total_decisions }}</div>
+    <div class="stat-subtext">{{ active_decisions }} active evaluations</div>
+  </div>
+
+  <div class="stat-card" style="--stat-accent: #38bdf8;">
+    <div class="stat-label">Decided</div>
+    <div class="stat-value">{{ decided_decisions }}</div>
+    <div class="stat-subtext">{{ outcome_pending }} pending outcome log</div>
+  </div>
+
+  <div class="stat-card" style="--stat-accent: #10b981;">
+    <div class="stat-label">Completed & Evaluated</div>
+    <div class="stat-value">{{ completed_decisions }}</div>
+    <div class="stat-subtext">Real-world outcomes logged</div>
+  </div>
+
+  <div class="stat-card" style="--stat-accent: #f59e0b;">
+    <div class="stat-label">Success Rate</div>
+    <div class="stat-value">{{ success_rate }}%</div>
+    <div class="stat-subtext">{{ successful_count }} of {{ completed_decisions }} positive</div>
+  </div>
+
+  <div class="stat-card" style="--stat-accent: #8b5cf6;">
+    <div class="stat-label">Average Confidence</div>
+    <div class="stat-value">{{ avg_confidence }}%</div>
+    <div class="stat-subtext">Subjective conviction level</div>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+  <!-- Recent Decisions Section -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Recent Decisions</h2>
+        <a href="{% url 'decision_list' %}" class="btn btn-secondary btn-sm">View All ({{ total_decisions }})</a>
+      </div>
+
+      {% if recent_decisions %}
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          {% for dec in recent_decisions %}
+            <div style="background-color: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1rem; display: flex; justify-content: space-between; align-items: center; transition: border-color 0.15s ease;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                  <span class="badge badge-{{ dec.importance|lower }}">{{ dec.get_importance_display }}</span>
+                  <span class="badge badge-{{ dec.status|lower }}">{{ dec.get_status_display }}</span>
+                  <span style="font-size: 0.75rem; color: var(--text-dim);">{{ dec.get_category_display }}</span>
+                </div>
+                <h3 style="font-size: 1rem; font-weight: 600;">
+                  <a href="{% url 'decision_detail' dec.pk %}" style="color: var(--text-main); hover: color: var(--brand-primary);">{{ dec.title }}</a>
+                </h3>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+                  {% if dec.selected_option %}
+                    Chosen: <strong>{{ dec.selected_option.title }}</strong> ({{ dec.confidence_score }}% confidence)
+                  {% else %}
+                    {{ dec.options.count }} options in evaluation
+                  {% endif %}
+                </p>
+              </div>
+
+              <div style="display: flex; gap: 0.5rem;">
+                {% if dec.status == 'COMPLETED' %}
+                  <a href="{% url 'decision_replay' dec.pk %}" class="btn btn-secondary btn-sm" style="color: var(--accent-info);">Replay</a>
+                {% elif dec.status == 'DECIDED' %}
+                  <a href="{% url 'decision_outcome' dec.pk %}" class="btn btn-secondary btn-sm" style="color: var(--accent-success);">Log Outcome</a>
+                {% else %}
+                  <a href="{% url 'decision_wizard' dec.pk %}" class="btn btn-primary btn-sm">Evaluate</a>
+                {% endif %}
+                <a href="{% url 'decision_detail' dec.pk %}" class="btn btn-secondary btn-sm">Details</a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div style="text-align: center; padding: 3rem 1rem;">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⚖️</div>
+          <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem;">No Decisions in Vault Yet</h3>
+          <p style="color: var(--text-muted); font-size: 0.85rem; max-width: 400px; margin: 0 auto 1.5rem auto;">
+            Structure your choices, assign factor weights, compute decision scores, and track your judgment over time.
+          </p>
+          <a href="{% url 'decision_create' %}" class="btn btn-primary">Start Your First Decision</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Sidebar Analytics & Reminders -->
+  <div>
+    <!-- Pending Outcomes Reminders -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title" style="font-size: 1rem;">Outcome Follow-ups</h2>
+        <span class="badge badge-active">{{ outcome_pending }} Pending</span>
+      </div>
+      {% if reminders %}
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          {% for r in reminders %}
+            <div style="padding: 0.75rem; background: var(--bg-surface-elevated); border-radius: var(--radius-sm); font-size: 0.85rem;">
+              <div style="font-weight: 600; margin-bottom: 0.2rem;">
+                <a href="{% url 'decision_detail' r.pk %}">{{ r.title }}</a>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.4rem;">
+                <span style="font-size: 0.75rem; color: var(--text-dim);">Status: {{ r.get_status_display }}</span>
+                {% if r.status == 'DECIDED' %}
+                  <a href="{% url 'decision_outcome' r.pk %}" style="font-size: 0.75rem; color: var(--accent-success); font-weight: 600;">+ Record Result</a>
+                {% else %}
+                  <a href="{% url 'decision_wizard' r.pk %}" style="font-size: 0.75rem; color: var(--brand-primary); font-weight: 600;">Finalize →</a>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p style="font-size: 0.85rem; color: var(--text-dim); text-align: center; padding: 1rem;">All caught up! No decisions pending outcome logging.</p>
+      {% endif %}
+    </div>
+
+    <!-- Category Distribution -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title" style="font-size: 1rem;">Category Breakdown</h2>
+      </div>
+      {% if category_counts %}
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          {% for cat in category_counts %}
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.25rem;">
+                <span>{{ cat.category|title }}</span>
+                <span style="color: var(--text-muted); font-weight: 600;">{{ cat.count }}</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: {% widthratio cat.count total_decisions 100 %}%;"></div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p style="font-size: 0.85rem; color: var(--text-dim); text-align: center; padding: 1rem;">No category data yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}Decision Replay: {{ decision.title }} — TimeVault{% endblock %}
+{% block header_title %}Decision Replay Analysis{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+      <span class="badge badge-completed">Completed Decision</span>
+      <span style="font-size: 0.85rem; color: var(--text-dim);">{{ decision.get_category_display }}</span>
+      <span style="font-size: 0.85rem; color: var(--text-dim);">• Made on {{ decision.decided_at|date:"M d, Y" }}</span>
+    </div>
+    <h2 style="font-size: 1.6rem; font-weight: 800;">{{ decision.title }}</h2>
+  </div>
+  <div style="display: flex; gap: 0.5rem;">
+    <a href="{% url 'decision_outcome' decision.pk %}" class="btn btn-secondary btn-sm">Edit Outcome</a>
+    <a href="{% url 'decision_detail' decision.pk %}" class="btn btn-secondary btn-sm">Overview</a>
+  </div>
+</div>
+
+<!-- ==========================================
+     METRIC SYNTHESIS BANNER
+     ========================================== -->
+<div class="card" style="border: 2px solid var(--accent-info); background: linear-gradient(135deg, rgba(14,165,233,0.1), rgba(15,23,42,0.9)); margin-bottom: 2rem;">
+  <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--accent-info); margin-bottom: 0.5rem;">
+    Longitudinal Judgment Calibration
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem; align-items: center;">
+    <div>
+      <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Original Confidence</div>
+      <div style="font-size: 1.8rem; font-weight: 800; color: var(--brand-primary);">{{ decision.confidence_score }}%</div>
+      <div style="font-size: 0.75rem; color: var(--text-muted);">Subjective anticipation</div>
+    </div>
+
+    <div>
+      <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Actual Outcome</div>
+      <div style="margin-top: 0.3rem;">
+        <span class="badge badge-{{ outcome.outcome_status|lower }}" style="font-size: 1rem; padding: 0.35rem 0.85rem;">
+          {{ outcome.get_outcome_status_display }}
+        </span>
+      </div>
+      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">Satisfaction: {{ outcome.satisfaction_score }}/10</div>
+    </div>
+
+    <div>
+      <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Prediction Calibration</div>
+      <div style="font-size: 1.4rem; font-weight: 800; color: {% if replay.accuracy_score >= 80 %}var(--accent-success){% elif replay.accuracy_score >= 60 %}var(--accent-info){% else %}var(--accent-warning){% endif %};">
+        {{ replay.accuracy_label }}
+      </div>
+      <div style="font-size: 0.75rem; color: var(--text-muted);">Alignment index: {{ replay.accuracy_score }}/100</div>
+    </div>
+
+    <div>
+      <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Model Alignment</div>
+      <div style="font-size: 1.1rem; font-weight: 700; margin-top: 0.3rem; color: {% if replay.is_aligned %}var(--accent-success){% else %}var(--accent-warning){% endif %};">
+        {% if replay.is_aligned %}
+          ✓ Followed Top Model Choice
+        {% else %}
+          Diverged from Top Choice ({{ replay.score_difference }}%)
+        {% endif %}
+      </div>
+      <div style="font-size: 0.75rem; color: var(--text-muted);">Against weighted model</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     SIDE-BY-SIDE REPLAY GRID
+     ========================================== -->
+<div class="replay-grid">
+  <!-- LEFT: AT DECISION TIME -->
+  <div class="card" style="border-top: 4px solid var(--brand-primary);">
+    <div class="card-header">
+      <div>
+        <h3 class="card-title" style="color: var(--brand-primary);">At Decision Time</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">Recorded on {{ decision.decided_at|date:"F d, Y" }}</p>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 1.25rem;">
+      <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Selected Option</div>
+      <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin-top: 0.2rem;">
+        {{ decision.selected_option.title }}
+      </div>
+    </div>
+
+    <div style="margin-bottom: 1.5rem; background: var(--bg-app); padding: 1rem; border-radius: var(--radius-sm);">
+      <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Original Rationale & Reasoning</div>
+      <p style="font-size: 0.9rem; color: var(--text-main); line-height: 1.5;">{{ decision.decision_reasoning }}</p>
+    </div>
+
+    <div style="margin-bottom: 1.5rem;">
+      <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Options & Calculated Scores</div>
+      <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+        {% for item in replay.scores_data.options %}
+          <div style="background: var(--bg-surface-elevated); padding: 0.75rem; border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <span style="font-size: 0.85rem; font-weight: 600;">{{ item.title }}</span>
+              {% if item.is_selected %}
+                <span class="badge badge-completed" style="font-size: 0.7rem; margin-left: 0.4rem;">Chosen</span>
+              {% endif %}
+            </div>
+            <div style="font-weight: 700; color: var(--brand-primary); font-size: 0.95rem;">
+              {{ item.percentage }}%
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Key Evaluation Criteria</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+        {% for f in decision.factors.all %}
+          <span style="background: var(--bg-app); padding: 0.35rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-muted); border: 1px solid var(--border-subtle);">
+            {{ f.name }} (wt: {{ f.weight }})
+          </span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: AFTER OUTCOME -->
+  <div class="card" style="border-top: 4px solid var(--accent-success);">
+    <div class="card-header">
+      <div>
+        <h3 class="card-title" style="color: var(--accent-success);">After Outcome</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">Recorded on {{ outcome.outcome_date|date:"F d, Y" }}</p>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 1.25rem;">
+      <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Actual Reality</div>
+      <p style="font-size: 0.95rem; color: var(--text-main); margin-top: 0.25rem; line-height: 1.5; background: var(--bg-app); padding: 1rem; border-radius: var(--radius-sm);">
+        {{ outcome.actual_result }}
+      </p>
+    </div>
+
+    {% if outcome.financial_impact %}
+    <div style="margin-bottom: 1.25rem;">
+      <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Financial & Real Impact</div>
+      <div style="font-size: 1rem; font-weight: 600; color: var(--text-main); margin-top: 0.2rem;">
+        {{ outcome.financial_impact }}
+      </div>
+    </div>
+    {% endif %}
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+      <div style="background: var(--bg-surface-elevated); padding: 0.85rem; border-radius: var(--radius-sm);">
+        <div style="font-size: 0.75rem; font-weight: 700; color: var(--accent-success); margin-bottom: 0.35rem;">✓ What Went Right</div>
+        <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4;">{{ outcome.what_went_right|default:"No specific notes" }}</p>
+      </div>
+
+      <div style="background: var(--bg-surface-elevated); padding: 0.85rem; border-radius: var(--radius-sm);">
+        <div style="font-size: 0.75rem; font-weight: 700; color: var(--accent-danger); margin-bottom: 0.35rem;">✕ What Went Wrong</div>
+        <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4;">{{ outcome.what_went_wrong|default:"No specific notes" }}</p>
+      </div>
+    </div>
+
+    {% if outcome.lessons_learned %}
+    <div style="background: rgba(99,102,241,0.08); border: 1px solid var(--border-subtle); padding: 1rem; border-radius: var(--radius-sm);">
+      <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--brand-primary); margin-bottom: 0.35rem;">Actionable Wisdom for Future Decisions</div>
+      <p style="font-size: 0.88rem; color: var(--text-main); line-height: 1.5;">{{ outcome.lessons_learned }}</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

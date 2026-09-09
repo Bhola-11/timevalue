@@ -1,0 +1,339 @@
+{% extends 'base.html' %}
+
+{% block title %}Evaluate: {{ decision.title }} — TimeVault{% endblock %}
+{% block header_title %}Decision Evaluation Wizard{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+  <div>
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+      <span class="badge badge-{{ decision.importance|lower }}">{{ decision.get_importance_display }}</span>
+      <span class="badge badge-{{ decision.status|lower }}">{{ decision.get_status_display }}</span>
+      <span style="font-size: 0.8rem; color: var(--text-dim);">{{ decision.get_category_display }}</span>
+    </div>
+    <h2 style="font-size: 1.4rem; font-weight: 800;">{{ decision.title }}</h2>
+  </div>
+  <a href="{% url 'decision_detail' decision.pk %}" class="btn btn-secondary btn-sm">Exit to Overview</a>
+</div>
+
+<!-- ==========================================
+     STEP 2: OPTIONS MANAGEMENT
+     ========================================== -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">1. Define Options Under Consideration</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">Add competing alternatives (e.g. 'Option A: Accept Offer', 'Option B: Counter Offer', 'Option C: Decline and Stay').</p>
+    </div>
+    <span class="badge badge-active">{{ options.count }} Options</span>
+  </div>
+
+  {% if options %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+      {% for opt in options %}
+        <div style="background-color: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1rem; position: relative;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <strong style="font-size: 0.95rem;">{{ opt.title }}</strong>
+            <form method="post" style="display: inline;">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="delete_option">
+              <input type="hidden" name="option_id" value="{{ opt.id }}">
+              <button type="submit" style="background: none; border: none; color: var(--accent-danger); cursor: pointer; font-size: 0.8rem;" title="Remove option">✕</button>
+            </form>
+          </div>
+          {% if opt.description %}
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">{{ opt.description }}</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div style="padding: 1rem; text-align: center; color: var(--text-dim); font-size: 0.85rem; background: var(--bg-app); border-radius: var(--radius-sm); margin-bottom: 1.5rem;">
+      No options created yet. Add at least two alternatives below to compare.
+    </div>
+  {% endif %}
+
+  <!-- Add Option Form -->
+  <form method="post" style="background-color: var(--bg-app); padding: 1rem; border-radius: var(--radius-sm); border: 1px dashed var(--border-strong);">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="add_option">
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+      <div style="flex: 2; min-width: 200px;">
+        <input type="text" name="option_title" class="form-input" placeholder="Option Name (e.g. Remote Job with Startup X)" required>
+      </div>
+      <div style="flex: 3; min-width: 250px;">
+        <input type="text" name="option_description" class="form-input" placeholder="Brief summary of terms, location, or trade-offs">
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">+ Add Option</button>
+    </div>
+  </form>
+</div>
+
+<!-- ==========================================
+     STEP 3: EVALUATION FACTORS & WEIGHTS
+     ========================================== -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">2. Define Evaluation Factors & Importance Weights</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">What factors matter to you? Assign weights from 1 (minor) to 10 (dealbreaker).</p>
+    </div>
+    <span class="badge badge-active">{{ factors.count }} Criteria</span>
+  </div>
+
+  {% if factors %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+      {% for f in factors %}
+        <div data-factor-id="{{ f.id }}" data-factor-weight="{{ f.weight }}" style="background-color: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <strong style="font-size: 0.95rem;">{{ f.name }}</strong>
+              <div style="margin-top: 0.25rem;">
+                <span class="badge badge-medium">Weight: {{ f.weight }}/10</span>
+              </div>
+            </div>
+            <form method="post" style="display: inline;">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="delete_factor">
+              <input type="hidden" name="factor_id" value="{{ f.id }}">
+              <button type="submit" style="background: none; border: none; color: var(--accent-danger); cursor: pointer; font-size: 0.8rem;" title="Remove factor">✕</button>
+            </form>
+          </div>
+          {% if f.explanation %}
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">{{ f.explanation }}</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div style="padding: 1rem; text-align: center; color: var(--text-dim); font-size: 0.85rem; background: var(--bg-app); border-radius: var(--radius-sm); margin-bottom: 1.5rem;">
+      No factors added yet. Add criteria like 'Salary', 'Culture', 'Work-Life Balance', etc.
+    </div>
+  {% endif %}
+
+  <!-- Add Factor Form -->
+  <form method="post" style="background-color: var(--bg-app); padding: 1rem; border-radius: var(--radius-sm); border: 1px dashed var(--border-strong);">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="add_factor">
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+      <div style="flex: 2; min-width: 180px;">
+        <input type="text" name="factor_name" class="form-input" placeholder="Criterion name (e.g. Salary, Growth, Commute)" required>
+      </div>
+      <div style="width: 120px;">
+        <select name="factor_weight" class="form-select" title="Importance weight (1-10)">
+          <option value="10">10 (Critical)</option>
+          <option value="9">9 (Very High)</option>
+          <option value="8">8 (High)</option>
+          <option value="7">7 (Substantial)</option>
+          <option value="6">6 (Above Avg)</option>
+          <option value="5" selected>5 (Moderate)</option>
+          <option value="4">4 (Low-Mid)</option>
+          <option value="3">3 (Low)</option>
+          <option value="2">2 (Minor)</option>
+          <option value="1">1 (Trivial)</option>
+        </select>
+      </div>
+      <div style="flex: 3; min-width: 220px;">
+        <input type="text" name="factor_explanation" class="form-input" placeholder="Why this criterion matters to your life">
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">+ Add Factor</button>
+    </div>
+  </form>
+</div>
+
+<!-- ==========================================
+     STEP 4: SCORING MATRIX
+     ========================================== -->
+{% if options and factors %}
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">3. Evaluation Matrix (Rate 1-10 for each factor)</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+        Rate how well each option performs on each factor. Ratings range from 1 (terrible) to 10 (exceptional).
+      </p>
+    </div>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="update_scores">
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 250px;">Evaluation Criteria</th>
+            <th style="width: 90px;">Weight</th>
+            {% for opt in options %}
+              <th style="text-align: center;">{{ opt.title }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in factors %}
+            <tr>
+              <td>
+                <strong>{{ f.name }}</strong>
+                {% if f.explanation %}
+                  <div style="font-size: 0.75rem; color: var(--text-dim);">{{ f.explanation }}</div>
+                {% endif %}
+              </td>
+              <td><span class="badge badge-medium">wt: {{ f.weight }}</span></td>
+              {% for opt in options %}
+                <td style="text-align: center;">
+                  <!-- Lookup existing score -->
+                  {% with key=f.id|stringformat:"s"|add:"_"|add:opt.id|stringformat:"s" %}
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      name="score_{{ f.id }}_{{ opt.id }}"
+                      data-factor-id="{{ f.id }}"
+                      data-option-id="{{ opt.id }}"
+                      value="{% for fs_key, fs_val in scores_dict.items %}{% if fs_key.0 == f.id and fs_key.1 == opt.id %}{{ fs_val }}{% endif %}{% endfor %}"
+                      class="form-input matrix-score-input"
+                      style="width: 70px; text-align: center; margin: 0 auto;"
+                    >
+                  {% endwith %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+      <button type="submit" class="btn btn-primary">Save Matrix Ratings</button>
+    </div>
+  </form>
+</div>
+
+<!-- ==========================================
+     STEP 5: PROS & CONS QUALITATIVE EVALUATION
+     ========================================== -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">4. Qualitative Pros & Cons</h3>
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">Record intuitive advantages and hidden downsides for each candidate.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+    {% for opt in options %}
+      <div style="background-color: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1rem;">
+        <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-main);">{{ opt.title }}</h4>
+
+        <!-- Existing Pros & Cons -->
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
+          {% for pc in opt.pros_cons.all %}
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; background: var(--bg-app); padding: 0.4rem 0.6rem; border-radius: var(--radius-sm);">
+              <div>
+                {% if pc.type == 'PRO' %}
+                  <span style="color: var(--accent-success); font-weight: 700;">+ Pro:</span>
+                {% else %}
+                  <span style="color: var(--accent-danger); font-weight: 700;">- Con:</span>
+                {% endif %}
+                {{ pc.text }}
+              </div>
+              <form method="post" style="display: inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_pro_con">
+                <input type="hidden" name="pc_id" value="{{ pc.id }}">
+                <button type="submit" style="background:none; border:none; color: var(--text-dim); cursor:pointer;">✕</button>
+              </form>
+            </div>
+          {% empty %}
+            <div style="font-size: 0.78rem; color: var(--text-dim);">No pros/cons added yet.</div>
+          {% endfor %}
+        </div>
+
+        <!-- Add Pro/Con form -->
+        <form method="post" style="display: flex; gap: 0.5rem;">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add_pro_con">
+          <input type="hidden" name="pc_option_id" value="{{ opt.id }}">
+          <select name="pc_type" class="form-select" style="width: 80px; padding: 0.35rem; font-size: 0.8rem;">
+            <option value="PRO">Pro</option>
+            <option value="CON">Con</option>
+          </select>
+          <input type="text" name="pc_text" class="form-input" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;" placeholder="Add notable point..." required>
+          <button type="submit" class="btn btn-secondary btn-sm" style="padding: 0.35rem 0.65rem;">Add</button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ==========================================
+     STEP 6: ANALYTICAL SYNTHESIS & FINAL CHOICE
+     ========================================== -->
+<div class="card" style="border: 1px solid var(--brand-primary); box-shadow: 0 4px 20px var(--brand-glow);">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title" style="color: var(--brand-primary);">5. Decision Scoring Analysis & Final Selection</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+        Review mathematical rankings, compare against your intuition, and seal your final choice.
+      </p>
+    </div>
+  </div>
+
+  <!-- Analytical Ranking Cards -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    {% for item in analysis.options %}
+      <div style="background-color: var(--bg-surface-elevated); border: 2px solid {% if forloop.first %}var(--accent-success){% else %}var(--border-subtle){% endif %}; border-radius: var(--radius-sm); padding: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <span class="badge {% if forloop.first %}badge-successful{% else %}badge-neutral{% endif %}">Rank #{{ item.rank }}</span>
+          <span class="live-score-val-{{ item.id }}" style="font-size: 1.4rem; font-weight: 800; color: {% if forloop.first %}var(--accent-success){% else %}var(--text-main){% endif %};">
+            {{ item.percentage }}%
+          </span>
+        </div>
+        <div style="font-weight: 700; font-size: 1rem; margin-bottom: 0.5rem;">{{ item.title }}</div>
+        <div class="progress-bar-bg" style="margin-bottom: 0.5rem;">
+          <div class="progress-bar-fill live-score-bar-{{ item.id }}" style="width: {{ item.percentage }}%;"></div>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-dim);">Weighted: {{ item.weighted_sum }} / {{ analysis.max_possible_score }} pts</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Final Decision Form -->
+  <form method="post" style="background-color: var(--bg-app); padding: 1.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border-strong);">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="make_decision">
+
+    <div style="margin-bottom: 1.25rem;">
+      <label class="form-label" style="font-size: 0.95rem;">Select Your Final Choice *</label>
+      <select name="selected_option" class="form-select" required>
+        <option value="">-- Choose Your Path --</option>
+        {% for opt in options %}
+          <option value="{{ opt.id }}" {% if decision.selected_option_id == opt.id %}selected{% endif %}>
+            {{ opt.title }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="margin-bottom: 1.25rem;">
+      <label class="form-label" style="font-size: 0.95rem;">Subjective Confidence Level (1–100%) *</label>
+      <input type="number" min="1" max="100" name="confidence_score" value="{{ decision.confidence_score|default:'80' }}" class="form-input" style="max-width: 200px;" required>
+      <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.25rem;">How sure are you that this is the best decision for your future?</div>
+    </div>
+
+    <div style="margin-bottom: 1.5rem;">
+      <label class="form-label" style="font-size: 0.95rem;">Decision Rationale & Conviction *</label>
+      <textarea name="decision_reasoning" rows="4" class="form-textarea" placeholder="Document why you made this choice, especially if it contradicts the highest-scoring option..." required>{{ decision.decision_reasoning }}</textarea>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div style="font-size: 0.8rem; color: var(--text-dim);">
+        ⚠️ Making a decision marks this entry as <strong>Decided</strong> and logs a milestone in your decision timeline.
+      </div>
+      <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-size: 1rem;">
+        Confirm & Finalize Decision
+      </button>
+    </div>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

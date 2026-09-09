@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In — TimeVault{% endblock %}
+{% block header_title %}Account Authentication{% endblock %}
+
+{% block content %}
+<div style="max-width: 440px; margin: 3rem auto;">
+  <div class="card">
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <div class="brand-icon" style="margin: 0 auto 1rem auto; width: 48px; height: 48px; font-size: 1.5rem;">T</div>
+      <h2 style="font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em;">Welcome Back</h2>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.35rem;">Enter your credentials to unlock your decision vault.</p>
+    </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-error" style="margin-bottom: 1rem;">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
+        <input type="text" name="{{ form.username.name }}" id="{{ form.username.id_for_label }}" class="form-input" required placeholder="Your username" autofocus>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.password.id_for_label }}">Password</label>
+        <input type="password" name="{{ form.password.name }}" id="{{ form.password.id_for_label }}" class="form-input" required placeholder="••••••••">
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+        Sign In to TimeVault
+      </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
+      Don't have a decision vault yet?
+      <a href="{% url 'register' %}" style="color: var(--brand-primary); font-weight: 600;">Create an account</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
