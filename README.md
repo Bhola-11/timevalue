@@ -101,6 +101,14 @@ TIMEVAULT/
 
 ---
 
+## Build Instructions
+
+To build and verify the project assets and environment:
+```bash
+python manage.py check
+python manage.py collectstatic --noinput
+```
+
 ## Installation & Setup Guide
 
 ### 1. Clone & Set Up Environment
@@ -139,7 +147,9 @@ python manage.py seed_demo
 python manage.py createsuperuser
 ```
 
-### 6. Start the Development Server
+## Run Instructions
+
+Start the local Django development server:
 ```bash
 python manage.py runserver
 ```
@@ -154,21 +164,13 @@ Run the complete test suite verifying models, MCDA scoring math, user isolation,
 ```bash
 python manage.py test
 ```
-
-Expected output:
-```text
-Creating test database for alias 'default'...
-Found 9 test(s).
-System check identified no issues (0 silenced).
-.........
-----------------------------------------------------------------------
-Ran 9 tests in ~11s
-
-OK
-Destroying test database for alias 'default'...
+Or via pytest:
+```bash
+pytest
 ```
 
 ---
 
-## License
-MIT License. Built for high-judgment personal decision making.
+## Ownership & Intellectual Property
+Proprietary software. All rights reserved. Built for high-judgment personal decision intelligence.
+
