@@ -1,0 +1,9 @@
+{
+  "name": "timevault",
+  "version": "1.0.0",
+  "description": "Personal Life Decision Intelligence System",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
